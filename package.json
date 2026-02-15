@@ -1,6 +1,6 @@
 {
   "name": "sovereign-identity",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "type": "module",
   "description": "OpenClaw Sovereign Identity Skill",
   "author": "TamTunnel",

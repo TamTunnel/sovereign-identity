@@ -1,6 +1,6 @@
 {
   "name": "Sovereign-Identity",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "OpenClaw Sovereign Identity Skill: Enables agents to manage self-sovereign identity, sign mandates, and use selective disclosure.",
   "author": "TamTunnel",
   "license": "Apache-2.0",

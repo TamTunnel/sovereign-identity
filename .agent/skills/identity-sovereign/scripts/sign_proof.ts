@@ -2,39 +2,68 @@ import * as jose from "jose";
 import bs58 from "bs58";
 import * as fs from "fs";
 import * as path from "path";
+import * as crypto from "crypto";
+import dotenv from "dotenv";
 import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Load env from project root
+const ROOT_DIR = path.resolve(__dirname, "../../../../");
+const ENV_PATH = path.join(ROOT_DIR, ".env.agent");
+dotenv.config({ path: ENV_PATH });
+
 const MANDATE_PATH = path.join(__dirname, "../schema/mandate.json");
 
+function decrypt(encryptedData: any, password: string): string {
+  const salt = Buffer.from(encryptedData.salt, "hex");
+  const iv = Buffer.from(encryptedData.iv, "hex");
+  const authTag = Buffer.from(encryptedData.authTag, "hex");
+  const encryptedText = encryptedData.content;
+
+  const key = crypto.scryptSync(password, salt, 32);
+  const decipher = crypto.createDecipheriv("aes-256-gcm", key, iv);
+  decipher.setAuthTag(authTag);
+
+  let decrypted = decipher.update(encryptedText, "hex", "utf8");
+  decrypted += decipher.final("utf8");
+
+  return decrypted;
+}
+
 async function main() {
-  // 1. Generate Ed25519 Key Pair
-  const { publicKey, privateKey } = await jose.generateKeyPair("EdDSA", {
-    crv: "Ed25519",
-  });
-
-  // 2. Export Public Key to JWK to construct DID
-  const jwk = await jose.exportJWK(publicKey);
-
-  if (!jwk.x) {
-    throw new Error("Invalid Ed25519 public key JWK: missing 'x'");
+  const password = process.env.CLAW_PASSWORD;
+  if (!password) {
+    console.error(
+      "❌ ERROR: CLAW_PASSWORD environment variable is required to sign mandates.",
+    );
+    process.exit(1);
   }
 
-  // 3. Construct did:key
-  // Decode base64url 'x' to bytes
-  const xBytes = jose.base64url.decode(jwk.x);
-  // multicodec prefix for Ed25519 public key in multiformats is 0xed 0x01 (varint 237)
-  const multicodecPrefix = new Uint8Array([0xed, 0x01]);
-  const didKeyBytes = new Uint8Array(multicodecPrefix.length + xBytes.length);
-  didKeyBytes.set(multicodecPrefix);
-  didKeyBytes.set(xBytes, multicodecPrefix.length);
+  // 1. Load Encrypted Identity
+  const encryptedKeyRaw = process.env.AGENT_ENCRYPTED_KEY;
+  const did = process.env.AGENT_DID;
 
-  const didIdentifier = bs58.encode(didKeyBytes);
-  const did = `did:key:z${didIdentifier}`;
+  if (!encryptedKeyRaw || !did) {
+    console.error(
+      "❌ No identity found. Run 'npx tsx scripts/onboard.ts' first.",
+    );
+    process.exit(1);
+  }
 
-  console.log(`Generated DID: ${did}`);
+  let privateKey: jose.KeyLike;
+  try {
+    const encryptedData = JSON.parse(encryptedKeyRaw);
+    const privateKeyPem = decrypt(encryptedData, password);
+    privateKey = await jose.importPKCS8(privateKeyPem, "EdDSA");
+    console.log("🔓 Identity Unlocked.");
+  } catch (err) {
+    console.error(
+      "❌ Critical Security Failure: Incorrect Password or Corrupted Key.",
+    );
+    process.exit(1);
+  }
 
   // 4. Load Mandate
   const mandateRaw = fs.readFileSync(MANDATE_PATH, "utf8");
@@ -44,28 +73,20 @@ async function main() {
   mandate.issuanceDate = new Date().toISOString();
 
   // 5. Sign Mandate
-  // We'll use a detached JWS style or just raw signature if we want to mimic LD-Architectures manually.
-  // For simplicity here, we'll create a Compact JWS but extract the signature part if needed,
-  // or just attach the full JWS as `proof` value if the schema supported it.
-  // The schema asks for "signatureValue" which usually implies raw signature bytes in hex or base58.
-  // But standard Ed25519Signature2020 suite is complex.
-  // Let's just sign the canonical string (JSON.stringify) for this demo.
-
   const payloadStr = JSON.stringify(mandate);
   const payloadBytes = new TextEncoder().encode(payloadStr);
 
-  // Create a JWS. It allows us to use standard verifying tools.
   const jws = await new jose.CompactSign(payloadBytes)
     .setProtectedHeader({ alg: "EdDSA", kid: did + "#key-1" })
     .sign(privateKey);
 
   // Attach proof
   mandate.proof = {
-    type: "JwsSignature2020", // Changing from Ed25519Signature2020 to clarify it's JWS based
+    type: "JwsSignature2020",
     verificationMethod: did + "#key-1",
     created: new Date().toISOString(),
     proofPurpose: "assertionMethod",
-    jws: jws, // We use `jws` property for JWS proofs
+    jws: jws,
   };
 
   console.log("Signed Mandate:");
@@ -77,11 +98,18 @@ async function main() {
     JSON.stringify(mandate, null, 2),
   );
 
-  // Export JWK for verification (simplification)
-  // In real DID world, verifier resolves DID to get JWK.
+  // We can't export public JWK easily from private key alone without regenerating or storing it.
+  // For verification script compatibility, we might need it.
+  // Ideally, the verifier resolves the DID.
+  // For this local flow, let's regenerate the public key from the private key if needed.
+  // jose doesn't support exportJWK from private key for public part directly in one go?
+  // Actually exportJWK(privateKey) returns private JWK which contains public part.
+  const jwk = await jose.exportJWK(privateKey);
+  const { d, ...publicJwk } = jwk; // Remove private part 'd'
+
   fs.writeFileSync(
     path.join(__dirname, "public_jwk.json"),
-    JSON.stringify(jwk, null, 2),
+    JSON.stringify(publicJwk, null, 2),
   );
 }
 

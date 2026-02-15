@@ -2,6 +2,7 @@ import * as jose from "jose";
 import bs58 from "bs58";
 import * as fs from "fs";
 import * as path from "path";
+import * as crypto from "crypto";
 import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -32,6 +33,7 @@ async function agentA_generateMandate() {
     type: "B2B_Handshake",
     iat: Math.floor(Date.now() / 1000),
     exp: Math.floor(Date.now() / 1000) + 60,
+    jti: crypto.randomUUID(),
     claims: {
       intent: "connect",
       capabilities: ["read_inventory"],

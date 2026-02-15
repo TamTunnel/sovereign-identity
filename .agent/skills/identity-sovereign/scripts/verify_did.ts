@@ -35,13 +35,6 @@ async function main() {
     console.log("✅ Verification SUCCESS: JWS signature is valid.");
     console.log("Protected Header:", protectedHeader);
 
-    // Check payload matches?
-    // In strict LD-Proof, we would detach the proof and canonicalize the document and compare.
-    // But here we embedded the JWS which CONTAINS the payload.
-    // The JWS payload is the mandate content.
-    // The `signedMandate` object has fields + proof.
-    // If the JWS payload matches the fields in `signedMandate` (minus proof), integrity is verified.
-
     const verifiedPayloadStr = new TextDecoder().decode(payload);
     const verifiedMandate = JSON.parse(verifiedPayloadStr);
 
@@ -49,6 +42,28 @@ async function main() {
     if (verifiedMandate.issuer === signedMandate.issuer) {
       console.log("Payload match confirmed.");
     }
+
+    // Hardening: Check Expiration
+    if (verifiedMandate.exp) {
+      const now = Math.floor(Date.now() / 1000);
+      if (now > verifiedMandate.exp) {
+        throw new Error(
+          `Token expired at ${verifiedMandate.exp}, now is ${now}`,
+        );
+      }
+      console.log("✅ Token is within expiration window.");
+    } else {
+      console.warn(
+        "⚠️  Warning: Token has no expiration (exp) field. Rejected by policy.",
+      );
+      throw new Error("Missing 'exp' claim.");
+    }
+
+    // Hardening: Check JTI
+    if (!verifiedMandate.jti) {
+      throw new Error("Missing 'jti' claim (Replay Protection).");
+    }
+    console.log(`✅ JTI Present: ${verifiedMandate.jti}`);
   } catch (err) {
     console.error("❌ Verification FAILED:", err);
     process.exit(1);

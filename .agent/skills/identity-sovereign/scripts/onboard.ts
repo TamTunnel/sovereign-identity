@@ -2,20 +2,51 @@ import * as jose from "jose";
 import bs58 from "bs58";
 import * as fs from "fs";
 import * as path from "path";
+import * as crypto from "crypto";
 import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const ENV_PATH = path.join(__dirname, "../../.env.agent");
+// Adjust path logic to find root of repo:
+// scripts -> identity-sovereign -> skills -> .agent -> REPO_ROOT
+const ROOT_DIR = path.resolve(__dirname, "../../../../");
+const ENV_PATH = path.join(ROOT_DIR, ".env.agent");
+
+function encrypt(text: string, password: string) {
+  const salt = crypto.randomBytes(16);
+  const key = crypto.scryptSync(password, salt, 32);
+  const iv = crypto.randomBytes(12); // GCM standard IV size
+  const cipher = crypto.createCipheriv("aes-256-gcm", key, iv);
+
+  let encrypted = cipher.update(text, "utf8", "hex");
+  encrypted += cipher.final("hex");
+  const authTag = cipher.getAuthTag().toString("hex");
+
+  return {
+    salt: salt.toString("hex"),
+    iv: iv.toString("hex"),
+    authTag: authTag,
+    content: encrypted,
+  };
+}
 
 async function main() {
   console.log("🚀 Starting OpenClaw Identity Onboarding...");
 
+  const password = process.env.CLAW_PASSWORD;
+  if (!password) {
+    console.error(
+      "❌ ERROR: CLAW_PASSWORD environment variable is required to encrypt your identity.",
+    );
+    console.error(
+      "   Usage: CLAW_PASSWORD=mypassword npx tsx scripts/onboard.ts",
+    );
+    process.exit(1);
+  }
+
   if (fs.existsSync(ENV_PATH)) {
     console.log("✅ Identity found in .env.agent. You are ready to go!");
-    // Verify key exists?
-    // For now just exit.
     return;
   }
 
@@ -26,12 +57,12 @@ async function main() {
     crv: "Ed25519",
   });
 
-  // 2. Export Private Key to PKCS8 PEM for storage
-  const privateKeyStart = await jose.exportPKCS8(privateKey);
-  // 3. Export Public Key to JWK for DID construction
+  // 2. Export Private Key to PKCS8 PEM
+  const privateKeyPem = await jose.exportPKCS8(privateKey);
+  // 3. Export Public Key to JWK
   const publicJwk = await jose.exportJWK(publicKey);
 
-  // 4. Construct DID (Using same logic as sign_proof.ts for consistency)
+  // 4. Construct DID
   if (!publicJwk.x) throw new Error("Invalid JWK");
   const xBytes = jose.base64url.decode(publicJwk.x);
   const multicodecPrefix = new Uint8Array([0xed, 0x01]);
@@ -43,43 +74,17 @@ async function main() {
 
   console.log(`\n🔑 New DID Generated: ${did}`);
 
-  // 5. Save to .env.agent
-  const envContent = `AGENT_DID=${did}\nAGENT_PRIVATE_KEY="${privateKeyStart.replace(/\n/g, "\\n")}"\n`;
+  // 5. Encrypt Private Key
+  const encryptedData = encrypt(privateKeyPem, password);
+  const serializedAuth = JSON.stringify(encryptedData);
 
-  // Ensure .agent root exists (it should if we are running this)
-  // The path is ../../.env.agent relative to scripts/
-  // skills/identity-sovereign/scripts -> skills/identity-sovereign -> skills -> .agent
-  // Actually typically .env could be in project root or .agent root.
-  // Let's put it in the skill root for now to be self-contained or better yet:
-  // User requested ".agent/ folder" check.
-  // Let's assume the root of the repo relative to this script is:
-  // scripts -> identity-sovereign -> skills -> .agent
-  // So ../../../ would be .agent/
+  // 6. Save to .env.agent
+  // We store the encrypted block as a single base64 string or JSON string in the env
+  const envContent = `AGENT_DID=${did}\nAGENT_ENCRYPTED_KEY='${serializedAuth}'\n`;
 
-  // BUT the requirement Says: "check for existing DIDs in the .agent/ folder"
-  // And "save it to a local .env.agent file".
-
-  // Let's stick to the skill directory for the file for defined scope,
-  // OR checking if a global one exists?
-  // Let's create it in the root of the "skill repo" which is `openclaw-identity-skill/`
-  // So that would be ../../ from `scripts` (scripts -> identity-sovereign -> skills -> .agent -> openclaw-identity-skill?? NO)
-
-  // Structure:
-  // openclaw-identity-skill/
-  //   .agent/
-  //     skills/
-  //       identity-sovereign/
-  //         scripts/
-
-  // So to get to `openclaw-identity-skill/` (root), we need `../../../..`
-  // scripts(1) -> identity-sovereign(2) -> skills(3) -> .agent(4) -> root
-
-  const rootDir = path.resolve(__dirname, "../../../../");
-  const envFileTarget = path.join(rootDir, ".env.agent");
-
-  fs.writeFileSync(envFileTarget, envContent);
-  console.log(`✅ Private Key saved to ${envFileTarget}`);
-  console.log("🔒 This file is gitignored. NEVER share it.");
+  fs.writeFileSync(ENV_PATH, envContent);
+  console.log(`✅ Encrypted Identity saved to ${ENV_PATH}`);
+  console.log("🔒 This file is gitignored. NEVER share it or your password.");
 
   console.log("\nOnboarding Complete! Run 'npm test' to verify.");
 }

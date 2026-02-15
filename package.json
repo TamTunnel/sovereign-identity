@@ -3,6 +3,23 @@
   "version": "1.0.0",
   "type": "module",
   "description": "OpenClaw Sovereign Identity Skill",
+  "author": "TamTunnel",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/TamTunnel/sovereign-identity.git"
+  },
+  "keywords": [
+    "auth",
+    "authentication",
+    "identity",
+    "agent",
+    "security",
+    "did",
+    "sovereign",
+    "zkp",
+    "sd-jwt",
+    "privacy"
+  ],
   "license": "Apache-2.0",
   "main": "index.js",
   "scripts": {

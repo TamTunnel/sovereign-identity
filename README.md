@@ -1,4 +1,4 @@
-# OpenClaw Sovereign Identity Skill
+# Sovereign Identity Skill
 
 This skill enables OpenClaw agents to manage their own identity using Decentralized Identifiers (DIDs), generate cryptographic proofs, and use Selective Disclosure (SD-JWT) for privacy-preserving interactions.
 

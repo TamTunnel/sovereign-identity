@@ -1,12 +1,11 @@
-{
-  "name": "openclaw-identity-skill",
+  "name": "sovereign-identity",
   "version": "1.0.0",
   "type": "module",
   "description": "OpenClaw Sovereign Identity Skill",
   "license": "Apache-2.0",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "npx tsx .agent/skills/identity-sovereign/scripts/e2e_test.ts"
   },
   "devDependencies": {
     "@types/bs58": "^4.0.4",

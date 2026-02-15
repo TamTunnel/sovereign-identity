@@ -1,4 +1,4 @@
-# Contributing to OpenClaw Sovereign Identity Skill
+# Contributing to Sovereign Identity Skill
 
 Thank you for your interest in contributing! This project follows the open-source philosophy of collaboration.
 

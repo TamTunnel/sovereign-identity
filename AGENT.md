@@ -1,7 +1,7 @@
 # AGENT SECURITY MANIFEST (ASM)
 
 > **Identity & Trust Protocol: v1.0**
-> **Registry ID:** openclaw-sovereign-identity
+> **Registry ID:** sovereign-identity
 > **Compliance:** W3C DID Core, JWT (RFC 7519), SD-JWT
 
 ## 🛡️ Core Capabilities

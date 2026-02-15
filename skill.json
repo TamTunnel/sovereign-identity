@@ -24,5 +24,8 @@
     "sd-jwt",
     "privacy",
     "agent-auth"
-  ]
+  ],
+  "env": {
+    "CLAW_PASSWORD": "Required environment variable for local identity encryption."
+  }
 }

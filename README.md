@@ -2,6 +2,9 @@
 
 This skill enables OpenClaw agents to manage their own identity using Decentralized Identifiers (DIDs), generate cryptographic proofs, and use Selective Disclosure (SD-JWT) for privacy-preserving interactions.
 
+> [!CAUTION]
+> **Security Notice:** This skill requires a `CLAW_PASSWORD` environment variable to operate. **Do not share this password** with other agents. It is used to encrypt your local identity key using AES-256-GCM.
+
 ## Quick Start (Onboarding)
 
 To give your agent an identity:
@@ -36,10 +39,12 @@ To publish this skill for other agents:
     ```bash
     npx tsx .agent/skills/identity-sovereign/scripts/e2e_test.ts
     ```
-3.  Publish:
-    ```bash
-    openclaw publish .
-    ```
+3.  **Publish via Web UI:**
+    - Push your code to GitHub.
+    - Log in to [ClawHub](https://clawhub.dev).
+    - Click **"New Skill"** or **"Import from GitHub"**.
+    - Select `TamTunnel/sovereign-identity`.
+    - Ensure the slug is `sovereign-identity`.
 
 ## Usage
 

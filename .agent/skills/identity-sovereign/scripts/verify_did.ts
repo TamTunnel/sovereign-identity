@@ -64,6 +64,32 @@ async function main() {
       throw new Error("Missing 'jti' claim (Replay Protection).");
     }
     console.log(`✅ JTI Present: ${verifiedMandate.jti}`);
+
+    // Stateful Replay Protection (JTI Ledger)
+    const ledgerPath = path.join(__dirname, ".jti_ledger.json");
+    let ledger: Record<string, number> = {};
+    if (fs.existsSync(ledgerPath)) {
+      try {
+        ledger = JSON.parse(fs.readFileSync(ledgerPath, "utf8"));
+      } catch (e) {}
+    }
+
+    const now = Math.floor(Date.now() / 1000);
+    // Cleanup expired entries
+    for (const [id, exp] of Object.entries(ledger)) {
+      if (exp < now) delete ledger[id];
+    }
+
+    if (ledger[verifiedMandate.jti]) {
+      throw new Error(
+        `Mandate JTI '${verifiedMandate.jti}' already used. Replay detected.`,
+      );
+    }
+
+    // Record JTI
+    ledger[verifiedMandate.jti] = verifiedMandate.exp || now + 3600;
+    fs.writeFileSync(ledgerPath, JSON.stringify(ledger, null, 2));
+    console.log("✅ JTI Recorded in Ledger (Replay Protected).");
   } catch (err) {
     console.error("❌ Verification FAILED:", err);
     process.exit(1);

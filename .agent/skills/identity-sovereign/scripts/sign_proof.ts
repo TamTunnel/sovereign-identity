@@ -56,11 +56,15 @@ async function main() {
   try {
     const encryptedData = JSON.parse(encryptedKeyRaw);
     const privateKeyPem = decrypt(encryptedData, password);
-    privateKey = await jose.importPKCS8(privateKeyPem, "EdDSA");
+    // FIX: Must make key extractable to export JWK later
+    privateKey = await jose.importPKCS8(privateKeyPem, "EdDSA", {
+      extractable: true,
+    });
     console.log("🔓 Identity Unlocked.");
   } catch (err) {
     console.error(
       "❌ Critical Security Failure: Incorrect Password or Corrupted Key.",
+      err,
     );
     process.exit(1);
   }
@@ -71,6 +75,9 @@ async function main() {
 
   mandate.issuer = did;
   mandate.issuanceDate = new Date().toISOString();
+  // Hardening: Add Expiration and JTI
+  mandate.exp = Math.floor(Date.now() / 1000) + 3600; // 1 hour expiration
+  mandate.jti = crypto.randomUUID();
 
   // 5. Sign Mandate
   const payloadStr = JSON.stringify(mandate);
@@ -98,12 +105,8 @@ async function main() {
     JSON.stringify(mandate, null, 2),
   );
 
-  // We can't export public JWK easily from private key alone without regenerating or storing it.
-  // For verification script compatibility, we might need it.
-  // Ideally, the verifier resolves the DID.
-  // For this local flow, let's regenerate the public key from the private key if needed.
-  // jose doesn't support exportJWK from private key for public part directly in one go?
-  // Actually exportJWK(privateKey) returns private JWK which contains public part.
+  // Export JWK for verification
+  // This requires the privateKey to be extractable
   const jwk = await jose.exportJWK(privateKey);
   const { d, ...publicJwk } = jwk; // Remove private part 'd'
 

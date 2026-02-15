@@ -55,6 +55,7 @@ async function main() {
   // 1. Generate Ed25519 Key Pair
   const { publicKey, privateKey } = await jose.generateKeyPair("EdDSA", {
     crv: "Ed25519",
+    extractable: true,
   });
 
   // 2. Export Private Key to PKCS8 PEM

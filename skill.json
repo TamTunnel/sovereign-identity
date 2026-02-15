@@ -1,0 +1,14 @@
+{
+  "name": "Sovereign-ID",
+  "version": "1.0.0",
+  "description": "OpenClaw Sovereign Identity Skill: Enables agents to manage self-sovereign identity, sign mandates, and use selective disclosure.",
+  "author": "OpenClaw",
+  "license": "Apache-2.0",
+  "entryPoint": "scripts/onboard.ts",
+  "capabilities": [
+    "did:key generation",
+    "verifiable credentials",
+    "selective disclosure",
+    "b2b mandates"
+  ]
+}

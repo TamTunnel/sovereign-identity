@@ -30,21 +30,6 @@ To give your agent an identity:
     npx tsx .agent/skills/identity-sovereign/scripts/guardrail.ts "Is this environment safe?"
     ```
 
-## Publishing to ClawHub
-
-To publish this skill for other agents:
-
-1.  Ensure `skill.json` is correct.
-2.  Run the test suite:
-    ```bash
-    npx tsx .agent/skills/identity-sovereign/scripts/e2e_test.ts
-    ```
-3.  **Publish via Web UI:**
-    - Push your code to GitHub.
-    - Log in to [ClawHub](https://clawhub.dev).
-    - Click **"New Skill"** or **"Import from GitHub"**.
-    - Select `TamTunnel/sovereign-identity`.
-    - Ensure the slug is `sovereign-identity`.
 
 ## Usage
 

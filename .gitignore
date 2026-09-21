@@ -4,6 +4,7 @@ node_modules
 dist
 *.json
 !package.json
+!package-lock.json
 !tsconfig.json
 !skill.json
-!schema/*.json
+!.agent/skills/identity-sovereign/schema/*.json

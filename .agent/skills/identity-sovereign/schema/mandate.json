@@ -1,0 +1,102 @@
+{
+  "$id": "https://github.com/TamTunnel/sovereign-identity/schema/mandate.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": true,
+  "description": "Template and JSON Schema for a signed mandate produced by scripts/sign_proof.ts. The signer starts from the `example` template below, fills in issuer, issuanceDate, exp, jti, and attaches `proof`. All other fields are caller-defined and optional.",
+  "example": {
+    "claims": {
+      "capabilities": [
+        "read_inventory"
+      ],
+      "intent": "connect"
+    },
+    "issuanceDate": "1970-01-01T00:00:00.000Z (filled in at signing time)",
+    "issuer": "did:key:z... (filled in at signing time)",
+    "task": "Describe the authorized task here before signing.",
+    "type": "B2B_Handshake"
+  },
+  "properties": {
+    "amount": {
+      "description": "Optional authorized spending amount.",
+      "type": "number"
+    },
+    "aud": {
+      "description": "Optional audience (verifier / service) the mandate is intended for.",
+      "type": [
+        "string",
+        "array"
+      ]
+    },
+    "claims": {
+      "additionalProperties": true,
+      "description": "Optional caller-defined claims.",
+      "type": "object"
+    },
+    "exp": {
+      "description": "Expiration as Unix epoch seconds. Filled in at signing time.",
+      "type": "integer"
+    },
+    "issuanceDate": {
+      "description": "ISO 8601 timestamp when the mandate was signed. Filled in at signing time.",
+      "format": "date-time",
+      "type": "string"
+    },
+    "issuer": {
+      "description": "DID of the mandate issuer (the agent's did:key). Filled in at signing time.",
+      "pattern": "^did:key:z[1-9A-HJ-NP-Za-km-z]+$",
+      "type": "string"
+    },
+    "jti": {
+      "description": "Unique mandate ID (UUID) for replay protection. Filled in at signing time.",
+      "type": "string"
+    },
+    "proof": {
+      "additionalProperties": true,
+      "description": "Detached proof block attached after signing.",
+      "properties": {
+        "created": {
+          "type": "string"
+        },
+        "jws": {
+          "type": "string"
+        },
+        "proofPurpose": {
+          "type": "string"
+        },
+        "type": {
+          "const": "JwsSignature2020",
+          "type": "string"
+        },
+        "verificationMethod": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "verificationMethod",
+        "jws"
+      ],
+      "type": "object"
+    },
+    "sub": {
+      "description": "Optional DID of the subject the mandate is about.",
+      "type": "string"
+    },
+    "task": {
+      "description": "Optional human-readable description of the authorized task.",
+      "type": "string"
+    },
+    "type": {
+      "description": "Optional mandate type label.",
+      "type": "string"
+    }
+  },
+  "required": [
+    "issuer",
+    "issuanceDate",
+    "exp",
+    "jti"
+  ],
+  "title": "Sovereign Identity Mandate",
+  "type": "object"
+}

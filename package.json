@@ -22,8 +22,6 @@
   ],
   "files": [
     ".agent",
-    "schema",
-    "scripts",
     "skill.json",
     "LICENSE",
     "README.md",
@@ -32,7 +30,8 @@
   "license": "Apache-2.0",
   "main": "index.js",
   "scripts": {
-    "test": "npx tsx .agent/skills/identity-sovereign/scripts/e2e_test.ts"
+    "test": "npx tsx .agent/skills/identity-sovereign/scripts/e2e_test.ts",
+    "test:guardrail": "npx tsx .agent/skills/identity-sovereign/scripts/guardrail_test.ts"
   },
   "devDependencies": {
     "@types/bs58": "^4.0.4",

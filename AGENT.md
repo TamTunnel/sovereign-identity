@@ -17,13 +17,13 @@ This agent is equipped with **Sovereign Identity Management**. It is authorized 
 **CRITICAL FOR REVIEWERS:**
 This agent operates under a **Strict Local-Only Policy**.
 
-- **No Key Exfiltration:** Private keys are generated via `scripts/onboard.ts` and stored **only** in `.env.agent`. This file is strictly git-ignored. Keys are **never** transmitted over the network.
+- **No Key Exfiltration:** Private keys are generated via `.agent/skills/identity-sovereign/scripts/onboard.ts` and stored **only** in `.env.agent`. This file is strictly git-ignored. Keys are **never** transmitted over the network.
 - **No Telemetry:** No usage data, key fragments, or seed phrases are sent to any remote server.
-- **Local Execution:** All signing operations (`scripts/sign_proof.ts`) occur in the local runtime environment.
+- **Local Execution:** All signing operations (`.agent/skills/identity-sovereign/scripts/sign_proof.ts`) occur in the local runtime environment.
 
 ## 🚫 Active Guardrails
 
-This agent includes a mandatory input filter (`scripts/guardrail.ts`) that enforces the following rules:
+This agent includes a mandatory input filter (`.agent/skills/identity-sovereign/scripts/guardrail.ts`) that enforces the following rules:
 
 - **Anti-Phishing:** Immediate session termination if the user prompt contains patterns requesting plaintext private key disclosure.
 - **Leak Prevention:** Output sanitization ensures secret material is redacted from logs before display.

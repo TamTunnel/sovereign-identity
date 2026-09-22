@@ -17,7 +17,7 @@ Please be respectful and inclusive. We follow the [Contributor Covenant](https:/
 ## Development
 
 - **Install dependencies:** `npm install`
-- **Run tests:** `npm test` (or `npx tsx scripts/e2e_test.ts`)
+- **Run tests:** `npm test` (or `npx tsx .agent/skills/identity-sovereign/scripts/e2e_test.ts`)
 - **Linting:** Ensure your code follows the existing style.
 
 ## Licensing

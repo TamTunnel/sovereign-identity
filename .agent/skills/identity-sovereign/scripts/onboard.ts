@@ -46,6 +46,10 @@ async function main() {
   }
 
   if (fs.existsSync(ENV_PATH)) {
+    // Enforce owner-only permissions even on identities created by older versions.
+    try {
+      fs.chmodSync(ENV_PATH, 0o600);
+    } catch {}
     console.log("✅ Identity found in .env.agent. You are ready to go!");
     return;
   }
@@ -83,9 +87,10 @@ async function main() {
   // We store the encrypted block as a single base64 string or JSON string in the env
   const envContent = `AGENT_DID=${did}\nAGENT_ENCRYPTED_KEY='${serializedAuth}'\n`;
 
-  fs.writeFileSync(ENV_PATH, envContent);
+  fs.writeFileSync(ENV_PATH, envContent, { mode: 0o600 });
   console.log(`✅ Encrypted Identity saved to ${ENV_PATH}`);
-  console.log("🔒 This file is gitignored. NEVER share it or your password.");
+  console.log("🔒 This file is gitignored and written with mode 600 (owner read/write only).");
+  console.log("   NEVER share it or your password.");
 
   console.log("\nOnboarding Complete! Run 'npm test' to verify.");
 }

@@ -5,7 +5,7 @@
   "author": "TamTunnel",
   "license": "Apache-2.0",
   "slug": "sovereign-identity",
-  "entryPoint": "scripts/onboard.ts",
+  "entryPoint": ".agent/skills/identity-sovereign/scripts/onboard.ts",
   "capabilities": [
     "did:key generation",
     "verifiable credentials",

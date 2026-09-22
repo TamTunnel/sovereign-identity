@@ -22,7 +22,8 @@ To give your agent an identity:
     npx tsx .agent/skills/identity-sovereign/scripts/onboard.ts
     ```
 
-    This will save your keys to `.env.agent` (which is gitignored).
+    This will save your keys to `.env.agent` (which is gitignored and written
+    with mode `600`, owner read/write only).
 
 3.  **Run a Safety Check:**
     Verify your environment is safe:
@@ -45,8 +46,14 @@ npx tsx .agent/skills/identity-sovereign/scripts/sign_proof.ts
 
 Used for browsing, signups, or proving attributes without revealing everything.
 
+The SD-JWT is signed with your **onboarded identity** — the script refuses to run
+without one and never invents attribute claims. Supply the attributes you consent
+to make disclosable via `AGENT_SD_CLAIMS` (a JSON object), and pass the claim
+names to reveal as arguments (omit them to reveal nothing):
+
 ```bash
-npx tsx .agent/skills/identity-sovereign/scripts/selective_disclosure.ts
+AGENT_SD_CLAIMS='{"age_over_18":true,"residency":"US"}' \
+  npx tsx .agent/skills/identity-sovereign/scripts/selective_disclosure.ts age_over_18
 ```
 
 ### 3. Verification
@@ -68,5 +75,26 @@ This agent follows the **OpenClaw Security Manifest** (`AGENT.md`).
 ## Directory Structure
 
 - `.agent/skills/identity-sovereign/SKILL.md`: The Brain & Decision Matrix.
-- `schema/`: JSON schemas.
-- `scripts/`: TypeScript implementation of DID/VC/SD-JWT logic.
+- `.agent/skills/identity-sovereign/scripts/`: TypeScript implementation of DID/VC/SD-JWT logic.
+- `.agent/skills/identity-sovereign/schema/`: JSON Schema for the signed mandate template used by `sign_proof.ts`.
+
+## Trust Assumptions & Current Limitations
+
+This is a local, single-agent prototype — not a trust network. Be aware of what
+it does and does not give you:
+
+- **Verification is DID-bound, but single-verifier.** `verify_did.ts` checks that
+  the verification JWK is byte-identical to the key encoded in the issuer's
+  `did:key`, and that the JWS `kid` names the issuer's key. It does **not**
+  resolve DIDs over a network, and it does not check any registry.
+- **Replay protection is local.** The JTI ledger (`.jti_ledger.json`) lives on the
+  verifier's machine. A mandate rejected once here can still be replayed to a
+  different verifier that never saw it.
+- **No revocation.** There is no revocation list or status check for mandates or
+  keys yet. A compromised key must be abandoned by rotating to a new DID
+  out-of-band.
+- **DID authenticity is out-of-band.** Verifying a signature proves *a holder of
+  the DID's key* signed it — not that the DID belongs to who you think it does.
+  Bind DIDs to real-world counterparties through a channel you already trust.
+- **No pairwise DIDs, ZKPs, or VCs yet.** The SKILL.md describes pairwise DIDs and
+  zero-knowledge proofs as goals; they are not implemented in this version.

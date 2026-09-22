@@ -52,7 +52,7 @@ async function main() {
     process.exit(1);
   }
 
-  let privateKey: jose.KeyLike;
+  let privateKey: CryptoKey;
   try {
     const encryptedData = JSON.parse(encryptedKeyRaw);
     const privateKeyPem = decrypt(encryptedData, password);
@@ -69,15 +69,35 @@ async function main() {
     process.exit(1);
   }
 
-  // 4. Load Mandate
-  const mandateRaw = fs.readFileSync(MANDATE_PATH, "utf8");
-  const mandate = JSON.parse(mandateRaw);
+  // 4. Load Mandate template from schema/mandate.json
+  const schemaDoc = JSON.parse(fs.readFileSync(MANDATE_PATH, "utf8"));
+  if (typeof schemaDoc.example !== "object" || schemaDoc.example === null) {
+    console.error(
+      "❌ schema/mandate.json is missing its 'example' mandate template.",
+    );
+    process.exit(1);
+  }
+  const mandate = { ...schemaDoc.example };
 
   mandate.issuer = did;
   mandate.issuanceDate = new Date().toISOString();
   // Hardening: Add Expiration and JTI
   mandate.exp = Math.floor(Date.now() / 1000) + 3600; // 1 hour expiration
   mandate.jti = crypto.randomUUID();
+
+  // Validate the fields the schema requires on a signable mandate
+  const requiredFields: string[] = Array.isArray(schemaDoc.required)
+    ? schemaDoc.required
+    : ["issuer", "issuanceDate", "exp", "jti"];
+  const missing = requiredFields.filter(
+    (f: string) => mandate[f] === undefined || mandate[f] === null,
+  );
+  if (missing.length > 0) {
+    console.error(
+      `❌ Mandate template is missing required fields: ${missing.join(", ")}`,
+    );
+    process.exit(1);
+  }
 
   // 5. Sign Mandate
   const payloadStr = JSON.stringify(mandate);

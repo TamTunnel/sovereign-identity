@@ -5,7 +5,9 @@
 
 const ALLOWED_SCHEMAS = [
   // 1. Simple Safety Check Command
-  /^Is this environment safe\\?$/,
+  // NOTE: `\?` matches a literal "?". (Do NOT double the backslash:
+  // `\\?` would mean "an optional literal backslash" instead.)
+  /^Is this environment safe\?$/,
 
   // 2. Verified Credential / Mandate Signing Request
   // Must be a valid JSON string with specific fields, NO private keys involved in the text itself
@@ -31,7 +33,7 @@ const ALLOWED_SCHEMAS = [
   },
 ];
 
-function strictScan(input: string) {
+export function strictScan(input: string) {
   let matched = false;
 
   for (const rule of ALLOWED_SCHEMAS) {
@@ -51,19 +53,30 @@ function strictScan(input: string) {
   console.log("✅ Strict Safety Check Passed.");
 }
 
-const args = process.argv.slice(2);
-if (args.length > 0) {
-  const input = args.join(" ");
+// Only run the CLI entrypoint when executed directly (not when imported).
+const isMainModule = (() => {
   try {
-    strictScan(input);
-  } catch (error: any) {
-    console.error(error.message);
-    process.exit(1);
+    return import.meta.url === new URL(`file://${process.argv[1]}`).href;
+  } catch {
+    return false;
   }
-} else {
-  // No args = pass for simple execution checks, or fail?
-  // User requested "Strict Input Validation".
-  // If running with no args, it might be just checking the script itself?
-  // Let's assume emptiness is safe or requiring an input to validate.
-  console.log("ℹ️ No input provided to guardrail.");
+})();
+
+if (isMainModule) {
+  const args = process.argv.slice(2);
+  if (args.length > 0) {
+    const input = args.join(" ");
+    try {
+      strictScan(input);
+    } catch (error: any) {
+      console.error(error.message);
+      process.exit(1);
+    }
+  } else {
+    // No args = pass for simple execution checks, or fail?
+    // User requested "Strict Input Validation".
+    // If running with no args, it might be just checking the script itself?
+    // Let's assume emptiness is safe or requiring an input to validate.
+    console.log("ℹ️ No input provided to guardrail.");
+  }
 }

@@ -1,10 +1,28 @@
 import * as jose from "jose";
 import * as fs from "fs";
 import * as path from "path";
+import bs58 from "bs58";
 import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+/**
+ * Derive the Ed25519 public key (base64url "x") implied by a did:key.
+ * For did:key, the DID *is* the key: z-base58(multicodec(0xed01) || x).
+ * Throws if the DID is not a well-formed Ed25519 did:key.
+ */
+function didKeyToJwkX(did: string): string {
+  const m = /^did:key:(z[1-9A-HJ-NP-Za-km-z]+)$/.exec(did);
+  if (!m) {
+    throw new Error(`Not a did:key identifier: ${did}`);
+  }
+  const bytes = bs58.decode(m[1].slice(1)); // strip the leading 'z'
+  if (bytes.length !== 34 || bytes[0] !== 0xed || bytes[1] !== 0x01) {
+    throw new Error(`did:key is not an Ed25519 public key: ${did}`);
+  }
+  return jose.base64url.encode(bytes.slice(2));
+}
 
 async function main() {
   const signedMandatePath = path.join(__dirname, "signed_mandate.json");
@@ -18,7 +36,35 @@ async function main() {
   const signedMandate = JSON.parse(fs.readFileSync(signedMandatePath, "utf8"));
   const publicJwk = JSON.parse(fs.readFileSync(publicJwkPath, "utf8"));
 
-  console.log(`Verifying mandate issued by: ${signedMandate.issuer}`);
+  const issuerDid: string = signedMandate.issuer;
+  console.log(`Verifying mandate issued by: ${issuerDid}`);
+
+  // Bind the verification key to the DID.
+  // did:key implies the key, so a signer-supplied JWK is only acceptable
+  // if it is byte-identical to the key encoded in the DID. Anything else
+  // means the verifier is being asked to trust an attacker's key.
+  let didBoundX: string;
+  try {
+    didBoundX = didKeyToJwkX(issuerDid);
+  } catch (err: any) {
+    console.error(`❌ Verification FAILED: ${err.message}`);
+    process.exit(1);
+  }
+  if (
+    !publicJwk.x ||
+    publicJwk.x !== didBoundX ||
+    publicJwk.kty !== "OKP" ||
+    publicJwk.crv !== "Ed25519"
+  ) {
+    console.error(
+      "❌ SECURITY FAILURE: public_jwk.json does NOT correspond to the issuer's did:key.",
+    );
+    console.error(
+      "   The verification key must be the key encoded in the DID itself. Refusing to verify.",
+    );
+    process.exit(1);
+  }
+  console.log("✅ Verification key is bound to the issuer DID (did:key).");
 
   // Extract JWS
   const jws = signedMandate.proof.jws;
@@ -34,6 +80,15 @@ async function main() {
 
     console.log("✅ Verification SUCCESS: JWS signature is valid.");
     console.log("Protected Header:", protectedHeader);
+
+    // The signing key id must name the issuer's key, not someone else's.
+    const expectedKid = issuerDid + "#key-1";
+    if (protectedHeader.kid !== expectedKid) {
+      throw new Error(
+        `kid mismatch: expected '${expectedKid}', got '${protectedHeader.kid}'`,
+      );
+    }
+    console.log("✅ Key ID (kid) matches the issuer DID.");
 
     const verifiedPayloadStr = new TextDecoder().decode(payload);
     const verifiedMandate = JSON.parse(verifiedPayloadStr);

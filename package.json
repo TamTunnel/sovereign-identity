@@ -31,7 +31,8 @@
   "main": "index.js",
   "scripts": {
     "test": "npx tsx .agent/skills/identity-sovereign/scripts/e2e_test.ts",
-    "test:guardrail": "npx tsx .agent/skills/identity-sovereign/scripts/guardrail_test.ts"
+    "test:guardrail": "npx tsx .agent/skills/identity-sovereign/scripts/guardrail_test.ts",
+    "test:strict-b64": "npx tsx .agent/skills/identity-sovereign/scripts/strict_base64url_test.ts"
   },
   "devDependencies": {
     "@types/bs58": "^4.0.4",

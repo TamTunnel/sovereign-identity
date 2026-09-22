@@ -3,6 +3,7 @@ import * as fs from "fs";
 import * as path from "path";
 import bs58 from "bs58";
 import { fileURLToPath } from "url";
+import { assertCanonicalJws } from "./strict_base64url.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -73,6 +74,12 @@ async function main() {
   const publicKey = await jose.importJWK(publicJwk, "EdDSA");
 
   try {
+    // Strict encoding gate: jose's decoder accepts non-canonical base64url
+    // (several strings decoding to the same bytes), so a tampered-looking
+    // token string can still verify. RFC 7515 demands canonical encoding;
+    // reject anything else before the signature check.
+    assertCanonicalJws(jws);
+
     const { payload, protectedHeader } = await jose.compactVerify(
       jws,
       publicKey,

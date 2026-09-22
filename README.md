@@ -98,3 +98,16 @@ it does and does not give you:
   Bind DIDs to real-world counterparties through a channel you already trust.
 - **No pairwise DIDs, ZKPs, or VCs yet.** The SKILL.md describes pairwise DIDs and
   zero-knowledge proofs as goals; they are not implemented in this version.
+
+## AWAS Integration
+
+This skill is the authentication layer for
+[AWAS](https://github.com/TamTunnel/AWAS) (AI Web Action Standard) websites:
+AWAS describes *what an agent may do*; sovereign-identity proves *who the
+agent is and what its owner allowed*. A site lists `"mandate"` in its AWAS
+manifest's `authentication.methods`, and the agent sends its mandate chain as
+`Authorization: Mandate <JWS>` — no passwords, sessions, or OTP codes.
+
+See [docs/AWAS-BINDING.md](./docs/AWAS-BINDING.md) for the full binding, and
+[AGENT-AUTHENTICATION.md](https://github.com/TamTunnel/AWAS/blob/main/AGENT-AUTHENTICATION.md)
+for the website-side guide.
